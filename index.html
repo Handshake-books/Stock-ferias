@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stock Ferias — Handshake</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="container">
+
+  <!-- ══ HEADER ══ -->
+  <div class="minimal-header">
+    <div class="header-top">
+      <div>
+        <div class="app-title">Stock Ferias</div>
+        <div class="app-subtitle">Planifica qué te llevas a cada feria, cuánto pesa y cómo lo empaquetas. Una herramienta libre de <a href="https://www.handshake.fun" target="_blank">Handshake</a> · 2026</div>
+      </div>
+      <nav class="header-nav">
+        <button class="nav-btn active" data-view="ferias">Ferias</button>
+        <button class="nav-btn" data-view="catalogo">Catálogo</button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       VIEW: FERIAS — 3 columnas
+  ══════════════════════════════════════ -->
+  <div id="view-ferias" class="view">
+    <div class="three-col">
+
+      <!-- ── COL 1: Lista de ferias ── -->
+      <div class="col-ferias">
+        <div class="column-title">Ferias</div>
+        <div id="ferias-empty" class="hint-text hidden">Aún no hay ferias. Crea la primera.</div>
+        <div id="ferias-list"></div>
+        <button class="add-btn" id="btn-nueva-feria">+ nueva feria</button>
+
+        <!-- Export/import de todas las ferias -->
+        <div class="ferias-data-actions">
+          <div class="column-title" style="margin-top:20px;margin-bottom:8px">Base de datos</div>
+          <button class="data-action-btn" id="btn-export-todo">↓ Descargar</button>
+          <button class="data-action-btn" id="btn-import-todo">↑ Importar</button>
+          <p class="hint-text" style="margin-top:8px;font-size:10px">Guarda y recupera todas tus ferias y el catálogo en un solo archivo JSON.</p>
+        </div>
+      </div>
+
+      <!-- ── COL 2: Stock ── -->
+      <div class="col-stock">
+
+        <div id="detail-empty" class="detail-empty">
+          <div class="detail-empty-inner">
+            <div class="empty-icon">◆</div>
+            <p>Selecciona una feria o crea una nueva.</p>
+          </div>
+        </div>
+
+        <div id="col-stock-content" class="hidden">
+
+          <!-- Cabecera feria -->
+          <div class="feria-header-block">
+            <input class="feria-title-input" id="feria-nombre" type="text" placeholder="Nombre de la feria..." />
+            <div class="hint-text" style="margin-top:4px">Dale un nombre claro: ciudad, evento, año. Te ayudará a comparar ferias más adelante.</div>
+            <div class="feria-meta-row" style="margin-top:10px">
+              <div class="meta-chip">
+                <span class="meta-chip-label">Objetivo de ventas</span>
+                <input id="feria-objetivo" type="number" min="0" placeholder="0" />
+                <span class="meta-chip-label">€</span>
+              </div>
+            </div>
+            <div class="hint-text" style="margin-top:6px">Pon una cifra realista. Si el valor del stock supera el doble de tu objetivo, probablemente te vuelvas con demasiado — el coste de enviarlo de vuelta puede comerse el margen.</div>
+          </div>
+
+          <!-- KPIs -->
+          <div class="kpi-strip" id="kpi-strip">
+            <div class="kpi-item">
+              <div class="kpi-value" id="kpi-uds">0 uds.</div>
+              <div class="kpi-label">Unidades</div>
+            </div>
+            <div class="kpi-item">
+              <div class="kpi-value blue" id="kpi-valor">0,00 €</div>
+              <div class="kpi-label">Valor del stock</div>
+            </div>
+            <div class="kpi-item">
+              <div class="kpi-value green" id="kpi-peso">0,00 kg</div>
+              <div class="kpi-label">Peso total</div>
+            </div>
+            <div class="kpi-item">
+              <div class="kpi-value" id="kpi-ratio">—</div>
+              <div class="kpi-label">Stock / objetivo</div>
+            </div>
+          </div>
+          <div class="alerta hidden" id="alerta-ratio"></div>
+
+          <!-- FASE 1: Stock -->
+          <div class="section-block">
+            <div class="section-header">
+              <div>
+                <div class="section-number">1</div>
+                <div class="section-title-text">Stock de la feria</div>
+              </div>
+            </div>
+            <p class="section-desc">Define qué títulos te llevas y cuántas unidades de cada uno. El precio y el peso se toman directamente del catálogo — si necesitas corregirlos, hazlo allí.</p>
+
+            <div id="stock-blocked" class="blocked-state hidden">
+              <div class="blocked-icon">📚</div>
+              <p>Antes de añadir stock necesitas tener productos en el <strong>catálogo</strong>.</p>
+              <button class="btn btn-outline btn-sm" onclick="cambiarVista('catalogo')">Ir al catálogo →</button>
+            </div>
+
+            <div id="stock-table-wrap">
+              <div class="stock-col-headers" id="stock-headers" style="display:none">
+                <span>Título</span>
+                <span class="th-r">Uds.</span>
+                <span class="th-r">Valor</span>
+                <span class="th-r">Peso</span>
+                <span></span>
+              </div>
+              <div id="stock-tbody"></div>
+              <div id="stock-empty" class="hint-text hint-italic hidden">Aún no hay títulos. Añade el primero con el botón de abajo.</div>
+            </div>
+
+            <!-- Fila inline añadir: aparece directamente con select -->
+            <div id="stock-add-row" class="stock-add-row hidden">
+              <div class="cell-name cell-name--select">
+                <select id="stock-add-select">
+                  <option value="">— elige un título —</option>
+                </select>
+              </div>
+              <button class="row-remove" id="btn-stock-add-cancel" title="Cancelar">✕</button>
+            </div>
+
+            <button class="add-btn" id="btn-add-stock">+ añadir título al stock</button>
+
+            <!-- Sin asignar -->
+            <div id="sin-asignar-wrap" class="sin-asignar-panel hidden">
+              <div class="sin-asignar-header">
+                <span class="sin-asignar-title">⚠ Unidades sin repartir en ningún paquete</span>
+                <span class="sin-asignar-count" id="sin-asignar-count"></span>
+              </div>
+              <div id="sin-asignar-rows"></div>
+              <div class="hint-text" style="margin-top:6px;padding:0 12px 10px">Asígnalas a un paquete en la columna de la derecha.</div>
+            </div>
+
+          </div>
+
+          <!-- Acciones feria -->
+          <div class="feria-actions">
+            <button class="btn btn-danger-ghost btn-sm" id="btn-borrar-feria">Borrar feria</button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── COL 3: Reparto ── -->
+      <div class="col-reparto">
+        <div id="col-reparto-content" class="hidden">
+
+          <div class="section-block">
+            <div class="section-header">
+              <div>
+                <div class="section-number">2</div>
+                <div class="section-title-text">Reparto por paquetes</div>
+              </div>
+              <button class="btn btn-dark btn-sm" id="btn-add-contenedor">+ añadir paquete</button>
+            </div>
+            <p class="section-desc">Distribuye las unidades entre tus paquetes. Cada uno puede ser de un tipo distinto: puedes mandar unas cajas por correo y llevar otras maletas en el avión.</p>
+
+            <div id="reparto-blocked" class="blocked-state hidden">
+              <div class="blocked-icon">📦</div>
+              <p>Primero define el stock que te llevas en la fase 1.</p>
+            </div>
+
+            <div id="contenedores-wrap"></div>
+          </div>
+
+          <!-- Checklist estado feria -->
+          <div class="checklist-card hidden" id="checklist-card">
+            <div class="checklist-header">
+              <div class="section-title-text" style="font-size:12px">Estado de la feria</div>
+              <button class="btn btn-dark btn-sm" id="btn-packing-list">Imprimir packing list</button>
+            </div>
+            <div id="checklist-rows"></div>
+          </div>
+
+        </div>
+
+        <div id="reparto-empty-global" class="detail-empty" style="min-height:200px">
+          <div class="detail-empty-inner" style="font-size:12px;color:var(--muted);text-align:center">
+            <p>El reparto aparecerá aquí<br>cuando selecciones una feria.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       VIEW: CATÁLOGO
+  ══════════════════════════════════════ -->
+  <div id="view-catalogo" class="view hidden">
+
+    <div class="column-title">Catálogo de productos</div>
+
+    <div class="catalogo-intro">
+      <p class="section-desc" style="max-width:500px">
+        Tu base de datos de títulos. Aquí defines el precio de venta y el peso de cada libro. Estos datos se usan automáticamente en cada feria — si el precio o el peso cambian, corrígelos aquí.
+      </p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" id="btn-import-catalogo">↑ Importar catálogo</button>
+        <button class="btn btn-outline btn-sm" id="btn-export-catalogo">↓ Descargar catálogo</button>
+      </div>
+    </div>
+
+    <div class="catalogo-table-container">
+      <div id="catalogo-empty" class="blocked-state hidden" style="margin-bottom:16px">
+        <div class="blocked-icon">📚</div>
+        <p>El catálogo está vacío. Añade tu primer título con el botón de abajo.</p>
+      </div>
+
+      <div class="cat-col-headers" id="cat-headers" style="display:none">
+        <span>Nombre del título</span>
+        <span class="th-r">Precio venta (€)</span>
+        <span class="th-r">Peso (kg)</span>
+        <span></span>
+      </div>
+
+      <div id="catalogo-rows"></div>
+
+      <button class="add-btn" id="btn-add-catalogo" style="margin-top:8px">+ añadir título</button>
+    </div>
+
+    <div class="catalogo-tip">
+      <strong>Tip:</strong> Usa "Descargar base de datos" en la columna de ferias para guardar un archivo con todas tus ferias y el catálogo a la vez. También puedes descargar solo el catálogo aquí si quieres compartirlo con alguien.
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ══ MODAL: Packing list ══ -->
+<div class="modal-overlay hidden" id="modal-packing">
+  <div class="modal modal--wide">
+    <div class="modal-header">
+      <h3 class="modal-title" id="packing-title">Packing list</h3>
+      <div class="modal-header-actions">
+        <button class="btn btn-outline btn-sm" id="btn-packing-csv">Exportar CSV</button>
+        <button class="btn btn-dark btn-sm" onclick="window.print()">Imprimir / PDF</button>
+        <button class="modal-close" id="modal-packing-close">✕</button>
+      </div>
+    </div>
+    <div class="modal-body modal-body--packing" id="packing-body"></div>
+  </div>
+</div>
+
+<input type="file" id="import-file" accept=".json" style="display:none" />
+
+<div class="handshake-credit">
+  Una herramienta libre de <a href="https://www.handshake.fun" target="_blank">Handshake</a> · 2026
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
