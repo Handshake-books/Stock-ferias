@@ -254,6 +254,7 @@ function cambiarVista(vista) {
   document.querySelectorAll('.nav-btn[data-view]').forEach(b =>
     b.classList.toggle('active', b.dataset.view === vista));
   if (vista === 'catalogo') renderCatalogo();
+  if (vista === 'ferias')   renderDetalle();
 }
 
 // ─────────────────────────────────────────────
