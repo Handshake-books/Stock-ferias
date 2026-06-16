@@ -334,14 +334,14 @@ function buildPaquete(feria, paq) {
     const totAsig  = totalAsignado(feria, s.id);
     const enOtros  = totAsig - enEste;
     const maxPerm  = s.qty - enOtros;
-    const restantesSinEste = Math.max(0, s.qty - enOtros - enEste);
+    // sinAsignar = global: cuántas quedan sin asignar en total (igual que col stock)
+    const sinAsignarGlobal = Math.max(0, s.qty - totAsig);
     const overItem = totAsig > s.qty;
 
-    let progClass='none', progText='';
-    if (overItem)                        { progClass='over'; progText=`${enEste} / ⚠`; }
-    else if (restantesSinEste===0 && enEste>0) { progClass='ok';   progText=`${enEste} / ✓`; }
-    else if (enEste>0)                   { progClass='warn'; progText=`${enEste} / ${restantesSinEste} rest.`; }
-    else                                 { progClass='none'; progText=`0 / ${s.qty} rest.`; }
+    let progClass, progText;
+    if (overItem)               { progClass='over'; progText='⚠'; }
+    else if (sinAsignarGlobal===0) { progClass='ok';   progText='✓'; }
+    else                        { progClass='warn'; progText=String(sinAsignarGlobal); }
 
     return `<div class="reparto-row">
       <div class="reparto-name" title="${esc(s.nombre)}">${esc(s.nombre)}</div>
@@ -351,7 +351,7 @@ function buildPaquete(feria, paq) {
           data-rasig data-paqid="${paq.id}" data-sid="${s.id}" data-max="${maxPerm}" />
         <button class="spin-btn" data-rspin="1" data-paqid="${paq.id}" data-sid="${s.id}" data-max="${maxPerm}">+</button>
       </div>
-      <div class="reparto-progress ${progClass}">${progText}</div>
+      <div class="reparto-progress ${progClass}" data-prog-paq="${paq.id}" data-prog-sid="${s.id}">${progText}</div>
     </div>`;
   }).join('');
 
@@ -422,7 +422,7 @@ function buildPaquete(feria, paq) {
         <div class="reparto-col-headers">
           <span>Título</span>
           <span>Uds. en este paquete</span>
-          <span>Aquí / restantes</span>
+          <span>Sin repartir</span>
         </div>
         ${repartoRows}
       </div>
@@ -472,7 +472,7 @@ function buildPaquete(feria, paq) {
       // NO llamamos renderPaquetes() para no destruir el DOM y cortar el spinner.
       // En su lugar actualizamos solo los elementos calculados en el bloque actual.
       renderKPIs(f);
-      actualizarCeldasSinRep(f);
+      actualizarSinRepartir(f);
       actualizarPaqueteUI(f, p, block);
       renderChecklist(f);
       renderFeriasList();
@@ -491,10 +491,16 @@ function buildPaquete(feria, paq) {
     if(!confirm('¿Eliminar este paquete? Las asignaciones se perderán.')) return;
     const f=feriaActiva();
     f.paquetes=f.paquetes.filter(x=>x.id!==e.target.dataset.removePaq);
-    guardar(); renderPaquetes(f); actualizarCeldasSinRep(f); renderChecklist(f); renderFeriasList();
+    guardar(); renderPaquetes(f); actualizarSinRepartir(f); renderChecklist(f); renderFeriasList();
   });
 
   return block;
+}
+
+// Actualiza ambas columnas "sin repartir" (stock + todos los paquetes) a la vez
+function actualizarSinRepartir(feria) {
+  actualizarSinRepartir(feria);
+  actualizarTodasProgresiones(feria);
 }
 
 // ── Actualiza los elementos calculados de un paquete SIN re-renderizar el DOM ──
@@ -550,27 +556,30 @@ function actualizarPaqueteUI(feria, paq, block) {
   const barLabels = block.querySelectorAll('.co-bar-labels span');
   if (barLabels[1] && limite) barLabels[1].textContent = !over ? fmtKg(limite-stats.pesoTotal)+' libres' : '';
 
-  // Filas de progreso (aquí / restantes) — sin tocar los inputs
+  // Filas de progreso — misma lógica que col "sin repartir" del stock
+  // Actualiza todas las columnas de sinAsignar en todos los paquetes visibles
+  // para reflejar el estado global tras el cambio
+  actualizarTodasProgresiones(feria);
+}
+
+// Actualiza las columnas "sin repartir" de TODOS los paquetes visibles
+// Se llama tras cualquier cambio de asignación para mantener consistencia global
+function actualizarTodasProgresiones(feria) {
   (feria.stock||[]).forEach(s => {
-    const enEste = (paq.asignaciones||{})[s.id]||0;
     const totAsig = totalAsignado(feria, s.id);
-    const enOtros = totAsig - enEste;
-    const restantesSinEste = Math.max(0, s.qty - enOtros - enEste);
+    const sinAsignarGlobal = Math.max(0, s.qty - totAsig);
     const overItem = totAsig > s.qty;
 
-    let progClass='none', progText='';
-    if (overItem)                              { progClass='over'; progText=`${enEste} / ⚠`; }
-    else if (restantesSinEste===0 && enEste>0) { progClass='ok';   progText=`${enEste} / ✓`; }
-    else if (enEste>0)                         { progClass='warn'; progText=`${enEste} / ${restantesSinEste} rest.`; }
-    else                                       { progClass='none'; progText=`0 / ${s.qty} rest.`; }
+    let progClass, progText;
+    if (overItem)                 { progClass='over'; progText='⚠'; }
+    else if (sinAsignarGlobal===0){ progClass='ok';   progText='✓'; }
+    else                          { progClass='warn'; progText=String(sinAsignarGlobal); }
 
-    // Buscar la celda de progreso de esta fila por sid
-    const rasigInp = block.querySelector(`[data-rasig][data-sid="${s.id}"]`);
-    const progEl   = rasigInp?.closest('.reparto-row')?.querySelector('.reparto-progress');
-    if (progEl) {
-      progEl.className = `reparto-progress ${progClass}`;
-      progEl.textContent = progText;
-    }
+    // Actualizar en todos los paquetes visibles
+    document.querySelectorAll(`[data-prog-sid="${s.id}"]`).forEach(el => {
+      el.className = `reparto-progress ${progClass}`;
+      el.textContent = progText;
+    });
   });
 }
 
@@ -590,18 +599,24 @@ function renderChecklist(feria) {
   const overW  = (feria.paquetes||[]).some(p => { const l=parseFloat(p.limiteKg); return l>0 && calcPaquete(feria,p).pesoTotal>l; });
 
   const items = [];
-  if (!STATE.catalogo.length) items.push({ status:'idle', icon:'○', label:'Catálogo vacío', detail:'Añade títulos en Catálogo' });
-  else items.push({ status:'ok', icon:'✓', label:'Catálogo listo', detail:`${STATE.catalogo.length} títulos` });
-
   if (!hasSt) items.push({ status:'idle', icon:'○', label:'Sin stock definido', detail:'Añade títulos en la fase 1' });
   else items.push({ status:'ok', icon:'✓', label:'Stock definido', detail:`${fmtUds(calc.uds)} · ${fmtE(calc.valor)} · ${fmtKg(calc.pesoKg)}` });
 
   if (ratio!==null) {
-    if (ratio>2)       items.push({ status:'bad',  icon:'⚠', label:'Stock muy alto respecto al objetivo', detail:`${fmtN(ratio,2)}×` });
-    else if (ratio>1.5)items.push({ status:'warn', icon:'⚠', label:'Stock algo alto respecto al objetivo', detail:`${fmtN(ratio,2)}×` });
-    else               items.push({ status:'ok',   icon:'✓', label:'Buen equilibrio stock / objetivo', detail:`${fmtN(ratio,2)}×` });
+    const margenStock = fmtE(calc.valor - parseFloat(feria.objetivo));
+    const pctSobreObj = Math.round((ratio - 1) * 100);
+    if (ratio>2) {
+      const exceso = fmtE(calc.valor - parseFloat(feria.objetivo)*2);
+      items.push({ status:'bad',  icon:'⚠', label:`Stock ${fmtN(ratio,2)}× el objetivo — llevas ${exceso} de exceso`, detail:`Si no lo vendes, ese será el coste mínimo de enviarlo de vuelta` });
+    } else if (ratio>1.5) {
+      items.push({ status:'warn', icon:'⚠', label:`Stock ${fmtN(ratio,2)}× el objetivo — algo alto`, detail:`Llevas ${margenStock} más de lo que esperas vender` });
+    } else if (ratio>=0.8) {
+      items.push({ status:'ok',   icon:'✓', label:`Buen equilibrio — stock ${fmtN(ratio,2)}× el objetivo`, detail:`Margen de ${fmtE(calc.valor - parseFloat(feria.objetivo))} sobre el objetivo` });
+    } else {
+      items.push({ status:'warn', icon:'⚠', label:`Stock ${fmtN(ratio,2)}× el objetivo — quizás poco stock`, detail:`Solo llevas el ${Math.round(ratio*100)}% del valor de tu objetivo` });
+    }
   } else {
-    items.push({ status:'idle', icon:'○', label:'Sin objetivo de ventas definido', detail:'Opcional' });
+    items.push({ status:'idle', icon:'○', label:'Introduce un objetivo de ventas', detail:'Te ayudará a calibrar cuánto stock llevar' });
   }
 
   if (!hasPaq) items.push({ status:'idle', icon:'○', label:'Sin paquetes creados', detail:'Añade paquetes en la fase 2' });
@@ -741,7 +756,7 @@ function actualizarCampoStock(sid, field, val) {
   const pEl=document.querySelector(`[data-calc-peso="${sid}"]`);
   if(vEl) vEl.textContent=fmtE(s.precio*s.qty);
   if(pEl) pEl.textContent=fmtKg(s.pesoKg*s.qty);
-  renderKPIs(feria); actualizarCeldasSinRep(feria); renderPaquetes(feria); renderChecklist(feria); renderFeriasList();
+  renderKPIs(feria); actualizarSinRepartir(feria); renderPaquetes(feria); renderChecklist(feria); renderFeriasList();
 }
 
 // ── ACCIONES: Paquetes ──
@@ -771,88 +786,103 @@ function eliminarProducto(pid) {
   STATE.catalogo=STATE.catalogo.filter(p=>p.id!==pid); guardar(); renderCatalogo();
 }
 
-// ── PACKING LIST con checkboxes ──
+// ── PACKING LIST — diseño de documento imprimible ──
 function abrirPackingList() {
   const feria=feriaActiva(); if(!feria) return;
   const body=document.getElementById('packing-body');
   document.getElementById('packing-title').textContent=`Packing list — ${feria.nombre||'Feria'}`;
 
-  const sinA=stockSinAsignar(feria);
-  let html='<div class="packing-contenedores">';
-
-  (feria.paquetes||[]).forEach(paq=>{
-    const stats =calcPaquete(feria,paq);
-    const limite=parseFloat(paq.limiteKg)||null;
-    const over  =limite&&stats.pesoTotal>limite;
-    const tipo  =TIPOS[paq.tipo]||TIPOS.postal;
-    const nombre=nombrePaquete(feria,paq);
-    const asig  =paq.asignaciones||{};
-    const items =(feria.stock||[]).filter(s=>(asig[s.id]||0)>0);
-    if(!items.length) return;
-
-    html+=`
-      <div class="packing-box">
-        <div class="packing-box-header ${tipo.headClass}">
-          <span class="packing-box-title">${nombre} — ${tipo.label}</span>
-          <span class="packing-box-meta">
-            <span>${fmtUds(stats.uds)}</span>
-            <span>Contenido: ${fmtKg(stats.pesoContenido)}</span>
-            <span>+ Vacío: ${fmtKg(parseFloat(paq.pesoVacioKg)||0)}</span>
-            <span><strong>Total: ${fmtKg(stats.pesoTotal)}${limite?' / '+fmtKg(limite):''}</strong></span>
-          </span>
-        </div>
-        <table class="packing-box-table">
-          <thead><tr>
-            <th class="print-checkbox-col"></th>
-            <th>Título</th>
-            <th class="th-r print-hide">Peso/ud</th>
-            <th class="th-r">Uds.</th>
-            <th class="th-r">Peso total</th>
-          </tr></thead>
-          <tbody>
-            ${items.map(s=>`<tr>
-              <td class="print-checkbox-col"><span class="print-checkbox"></span></td>
-              <td>${esc(s.nombre)}</td>
-              <td class="td-r print-hide">${fmtKg(s.pesoKg)}</td>
-              <td class="td-r">${fmtUds(asig[s.id]||0)}</td>
-              <td class="td-r">${fmtKg(s.pesoKg*(asig[s.id]||0))}</td>
-            </tr>`).join('')}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td class="print-checkbox-col"></td>
-              <td>Peso vacío del paquete</td>
-              <td class="print-hide"></td>
-              <td></td>
-              <td class="td-r">${fmtKg(parseFloat(paq.pesoVacioKg)||0)}</td>
-            </tr>
-            <tr>
-              <td class="print-checkbox-col"></td>
-              <td><strong>PESO TOTAL DEL BULTO</strong></td>
-              <td class="print-hide"></td>
-              <td></td>
-              <td class="td-r" style="color:${over?'var(--red)':'var(--green)'}"><strong>${fmtKg(stats.pesoTotal)}</strong></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>`;
+  const sinA   = stockSinAsignar(feria);
+  const total  = calcStock(feria);
+  const paqsConItems = (feria.paquetes||[]).filter(paq => {
+    const asig=paq.asignaciones||{};
+    return (feria.stock||[]).some(s=>(asig[s.id]||0)>0);
   });
 
-  if(sinA.length){
-    html+=`
-      <div class="packing-box">
-        <div class="packing-box-header sin-asignar">
-          <span class="packing-box-title">⚠ Sin asignar a ningún paquete</span>
-        </div>
-        <table class="packing-box-table">
-          <thead><tr><th></th><th>Título</th><th class="th-r">Uds.</th><th class="th-r">Peso</th></tr></thead>
-          <tbody>${sinA.map(s=>`<tr><td></td><td>${esc(s.nombre)}</td><td class="td-r" style="color:var(--orange)">${fmtUds(s.sinAsignar)}</td><td class="td-r">${fmtKg(s.pesoKg*s.sinAsignar)}</td></tr>`).join('')}</tbody>
-        </table>
-      </div>`;
+  // Cabecera del documento
+  let html = `<div class="pl-doc">
+    <div class="pl-header">
+      <div class="pl-header-title">${feria.nombre||'Feria'}</div>
+      <div class="pl-header-meta">
+        <span>${paqsConItems.length} paquete${paqsConItems.length!==1?'s':''}</span>
+        <span>·</span>
+        <span>${fmtUds(total.uds)}</span>
+        <span>·</span>
+        <span>${fmtKg(total.pesoKg)} contenido</span>
+        ${feria.objetivo?`<span>·</span><span>Objetivo ${fmtE(parseFloat(feria.objetivo))}</span>`:''}
+      </div>
+    </div>
+    <div class="pl-paquetes">`;
+
+  paqsConItems.forEach(paq => {
+    const stats  = calcPaquete(feria,paq);
+    const limite = parseFloat(paq.limiteKg)||null;
+    const over   = limite && stats.pesoTotal>limite;
+    const tipo   = TIPOS[paq.tipo]||TIPOS.postal;
+    const nombre = nombrePaquete(feria,paq);
+    const asig   = paq.asignaciones||{};
+    const items  = (feria.stock||[]).filter(s=>(asig[s.id]||0)>0);
+
+    html += `<div class="pl-paquete">
+      <div class="pl-paquete-head">
+        <div class="pl-paquete-nombre">${nombre}</div>
+        <div class="pl-paquete-tipo">${tipo.label}</div>
+        <div class="pl-paquete-peso" style="color:${over?'var(--red)':'inherit'}">${fmtKg(stats.pesoTotal)}${limite?' / '+fmtKg(limite):''}</div>
+      </div>
+      <table class="pl-table">
+        <thead><tr>
+          <th class="pl-cb"></th>
+          <th>Título</th>
+          <th class="pl-num">Uds.</th>
+          <th class="pl-num">Peso</th>
+        </tr></thead>
+        <tbody>
+          ${items.map(s=>`<tr>
+            <td class="pl-cb"><span class="print-checkbox"></span></td>
+            <td>${esc(s.nombre)}</td>
+            <td class="pl-num">${asig[s.id]||0}</td>
+            <td class="pl-num">${fmtKg(s.pesoKg*(asig[s.id]||0))}</td>
+          </tr>`).join('')}
+        </tbody>
+        <tfoot>
+          <tr class="pl-subtotal">
+            <td class="pl-cb"></td>
+            <td>Contenido</td>
+            <td class="pl-num">${stats.uds}</td>
+            <td class="pl-num">${fmtKg(stats.pesoContenido)}</td>
+          </tr>
+          <tr class="pl-total">
+            <td class="pl-cb"></td>
+            <td>+ Vacío (${fmtKg(parseFloat(paq.pesoVacioKg)||0)}) = <strong>Total bulto</strong></td>
+            <td></td>
+            <td class="pl-num" style="color:${over?'var(--red)':'var(--green)'}"><strong>${fmtKg(stats.pesoTotal)}</strong></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
+  });
+
+  // Sin asignar (si los hay)
+  if (sinA.length) {
+    html += `<div class="pl-paquete pl-sin-asignar">
+      <div class="pl-paquete-head">
+        <div class="pl-paquete-nombre">⚠ Sin asignar</div>
+        <div class="pl-paquete-tipo">No aparecerán en ningún paquete</div>
+      </div>
+      <table class="pl-table">
+        <thead><tr><th class="pl-cb"></th><th>Título</th><th class="pl-num">Uds.</th><th class="pl-num">Peso</th></tr></thead>
+        <tbody>${sinA.map(s=>`<tr>
+          <td class="pl-cb"></td>
+          <td>${esc(s.nombre)}</td>
+          <td class="pl-num" style="color:var(--orange)">${s.sinAsignar}</td>
+          <td class="pl-num">${fmtKg(s.pesoKg*s.sinAsignar)}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`;
   }
 
-  html+='</div>';
-  body.innerHTML=html;
+  html += `</div></div>`;
+  body.innerHTML = html;
   document.getElementById('modal-packing').classList.remove('hidden');
 }
 
@@ -932,7 +962,17 @@ function importarCatalogo() {
 
 // ── INIT ──
 document.addEventListener('DOMContentLoaded', ()=>{
-  cargar(); renderFeriasList(); renderDetalle();
+  cargar();
+  // Si no hay ferias, crear una nueva automáticamente para arrancar
+  if (!STATE.ferias.length) {
+    const f = {id:uid(), nombre:'', objetivo:null, stock:[], paquetes:[]};
+    STATE.ferias.push(f);
+    STATE.feriaId = f.id;
+    guardar();
+  } else if (!STATE.feriaId) {
+    STATE.feriaId = STATE.ferias[0].id;
+  }
+  renderFeriasList(); renderDetalle();
 
   document.querySelectorAll('.nav-btn[data-view]').forEach(b =>
     b.addEventListener('click', ()=>cambiarVista(b.dataset.view)));
@@ -965,8 +1005,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   // Catálogo
   document.getElementById('btn-add-catalogo').addEventListener('click', agregarProducto);
-  document.getElementById('btn-export-catalogo').addEventListener('click', exportarCatalogo);
-  document.getElementById('btn-import-catalogo').addEventListener('click', importarCatalogo);
 
   document.querySelectorAll('.modal-overlay').forEach(o=>
     o.addEventListener('click', e=>{if(e.target===o) o.classList.add('hidden');}));
