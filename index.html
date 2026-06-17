@@ -298,5 +298,22 @@
 <input type="file" id="import-file" accept=".json" style="display:none" />
 
 <script src="app.js"></script>
+<script>
+(function () {
+  function enviarAltura() {
+    var altura = document.documentElement.scrollHeight;
+    window.parent.postMessage({ iframeHeight: altura }, '*');
+  }
+
+  // Observa cualquier cambio de tamaño del contenido (añadir filas, paneles, etc.)
+  var observer = new ResizeObserver(enviarAltura);
+  observer.observe(document.documentElement);
+
+  // Envíos adicionales para cubrir carga inicial y fuentes/imágenes tardías
+  window.addEventListener('load', enviarAltura);
+  document.addEventListener('DOMContentLoaded', enviarAltura);
+  setTimeout(enviarAltura, 300); // por si las Google Fonts tardan en aplicar
+})();
+</script>
 </body>
 </html>
