@@ -168,7 +168,7 @@ a { color: inherit; text-decoration: none; }
    SECTIONS
 ══════════════════════════════════════════ */
 .section-block  { padding: 14px 0; border-bottom: 1px solid var(--border); }
-.section-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.section-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
 .section-header > div:first-child { display: flex; align-items: center; gap: 8px; }
 .section-number { width: 20px; height: 20px; border-radius: 50%; background: var(--text); color: #fff; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .section-title-text { font-size: 13px; font-weight: 800; }
@@ -195,7 +195,47 @@ a { color: inherit; text-decoration: none; }
   gap: 5px; align-items: center; margin-bottom: 3px;
 }
 
-/* (stock-add-row removed — select is now invisible/native) */
+/* Fila inline para añadir título — input editable con autocompletado al catálogo */
+.stock-add-row {
+  position: relative;
+  margin-top: 4px;
+}
+.stock-add-input-wrap {
+  display: flex; align-items: center; gap: 6px;
+  border-color: var(--blue);
+}
+.stock-add-input-wrap input {
+  border: none; background: transparent; outline: none;
+  font-family: Inter, system-ui, sans-serif; font-size: 12px; font-weight: 600;
+  color: var(--text); width: 100%; padding: 7px 0;
+}
+.stock-add-input-wrap input::placeholder { color: var(--muted); font-weight: 400; font-style: italic; }
+
+/* Badge "nuevo" / "en catálogo" junto al input */
+.cat-badge {
+  font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .3px;
+  padding: 2px 6px; border-radius: 4px; white-space: nowrap; flex-shrink: 0;
+}
+.cat-badge.new    { background: #fef3c7; color: #92400e; }
+.cat-badge.exists { background: #d1fae5; color: #065f46; }
+
+/* Lista de sugerencias del catálogo al escribir */
+.stock-add-suggestions {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12); z-index: 50;
+  max-height: 220px; overflow-y: auto;
+}
+.suggestion-item {
+  padding: 8px 12px; cursor: pointer; font-size: 12px; font-weight: 600;
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  transition: background .1s; border-bottom: 1px solid var(--bg);
+}
+.suggestion-item:last-child { border-bottom: none; }
+.suggestion-item:hover { background: var(--bg); }
+.suggestion-meta { font-size: 10px; color: var(--muted); font-weight: 700; white-space: nowrap; }
+
+/* (legacy comment removed — select reemplazado por input inline) */
 
 /* Celdas */
 .cell-name {
@@ -276,6 +316,12 @@ a { color: inherit; text-decoration: none; }
 .btn-outline:hover { border-color: var(--text); opacity: 1; }
 .btn-danger-ghost { background: #fff; border: 1px solid #fee2e2; color: var(--red); }
 .btn-danger-ghost:hover { background: #fef2f2; opacity: 1; }
+.btn-green        { background: var(--green); color: #fff; }
+.btn-green:hover  { opacity: .88; }
+.btn:disabled, .btn-green:disabled {
+  background: var(--border); color: var(--muted); cursor: not-allowed; opacity: 1;
+}
+.btn:disabled:hover { opacity: 1; }
 
 .feria-actions { display: flex; gap: 8px; padding-top: 14px; }
 

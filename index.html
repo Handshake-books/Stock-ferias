@@ -112,8 +112,7 @@
 
             <div id="stock-blocked" class="blocked-state hidden">
               <div class="blocked-icon">📚</div>
-              <p>Necesitas títulos en el <strong>catálogo</strong> antes de añadir stock.</p>
-              <button class="btn btn-outline btn-sm" onclick="cambiarVista('catalogo')">Ir al catálogo →</button>
+              <p>Aún no tienes títulos. Añade el primero y se guardará automáticamente en tu catálogo.</p>
             </div>
 
             <div id="stock-table-wrap">
@@ -127,12 +126,17 @@
               </div>
               <div id="stock-tbody"></div>
               <div id="stock-empty" class="hint-text hint-italic hidden">Aún no hay títulos. Añade el primero.</div>
-            </div>
 
-            <!-- Select invisible — se abre directamente al pulsar el botón -->
-            <select id="stock-add-select" aria-hidden="true" tabindex="-1" style="position:absolute;opacity:0;pointer-events:none;width:0;height:0">
-              <option value="">— elige un título —</option>
-            </select>
+              <!-- Fila inline para añadir título — nuevo o existente -->
+              <div id="stock-add-row" class="stock-add-row hidden">
+                <div class="cell-name stock-add-input-wrap">
+                  <input type="text" id="stock-add-input" placeholder="Nombre del título…" autocomplete="off" />
+                  <span class="cat-badge new hidden" id="stock-add-badge-new">+ Nuevo</span>
+                  <span class="cat-badge exists hidden" id="stock-add-badge-exists">✓ Catálogo</span>
+                </div>
+                <div id="stock-add-suggestions" class="stock-add-suggestions hidden"></div>
+              </div>
+            </div>
 
             <button class="add-btn" id="btn-add-stock">+ añadir título al stock</button>
           </div>
@@ -152,6 +156,7 @@
           <div class="section-block">
             <div class="section-header">
               <div><div class="section-number">2</div><div class="section-title-text">Reparto por paquetes</div></div>
+              <button class="btn btn-green btn-sm" id="btn-auto-repartir" disabled>⚡ Repartir equitativamente</button>
             </div>
             <p class="section-desc">Distribuye las unidades entre tus paquetes. Intenta repartir todos los títulos en cada paquete — si se pierde uno por el camino, seguirás teniendo ejemplares de todo. Cada paquete puede ser de un tipo distinto.</p>
 

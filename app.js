@@ -355,20 +355,14 @@ function renderStockTabla(feria) {
   const addBtn  = document.getElementById('btn-add-stock');
   tbody.innerHTML = '';
 
-  if (!STATE.catalogo.length) {
-    blocked.classList.remove('hidden');
-    headers.style.display = 'none';
-    empty.classList.add('hidden');
-    addBtn.style.display  = 'none';
-    return;
-  }
+  // Con el flujo actual el primer título se puede crear directamente desde aquí,
+  // así que esta sección nunca queda bloqueada — solo se informa con el estado vacío.
   blocked.classList.add('hidden');
   addBtn.style.display = '';
 
   if (!(feria.stock||[]).length) {
     empty.classList.remove('hidden');
     headers.style.display = 'none';
-    actualizarSelectStock(feria);
     return;
   }
 
@@ -407,8 +401,6 @@ function renderStockTabla(feria) {
     attachKeyboard(inp, setV);
     row.querySelector('[data-remove-sid]').addEventListener('click', () => quitarStock(s.id));
   });
-
-  actualizarSelectStock(feria);
 }
 
 // ─────────────────────────────────────────────
@@ -423,6 +415,9 @@ function renderPaquetes(feria) {
   const hasStock = (feria.stock||[]).length > 0;
   blocked.classList.toggle('hidden', hasStock);
   addBtn.style.display = hasStock ? '' : 'none';
+
+  actualizarBotonAutoRepartir(feria);
+
   if (!hasStock) return;
 
   (feria.paquetes||[]).forEach(paq => wrap.appendChild(buildPaquete(feria, paq)));
@@ -800,33 +795,104 @@ function borrarFeria() {
 }
 
 // ─────────────────────────────────────────────
-// ACCIONES: Stock
+// ACCIONES: Stock — fila inline con autocompletado al catálogo
 // ─────────────────────────────────────────────
-function actualizarSelectStock(feria) {
-  const sel = document.getElementById('stock-add-select');
-  if (!sel) return;
-  const disponibles = catalogoDisponible(feria);
-  sel.innerHTML = '<option value="">— elige un título —</option>';
-  disponibles.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p.id;
-    opt.textContent = `${p.nombre}  (${fmtN(p.precio,2)} € · ${fmtN(p.pesoKg,3)} kg)`;
-    sel.appendChild(opt);
-  });
+
+// Muestra la fila inline de "añadir título" con el input listo para escribir
+function abrirFilaAddStock() {
+  const feria = feriaActiva(); if (!feria) return;
+  const row   = document.getElementById('stock-add-row');
+  const addBtn= document.getElementById('btn-add-stock');
+  const input = document.getElementById('stock-add-input');
+
+  row.classList.remove('hidden');
+  addBtn.style.display = 'none';
+  input.value = '';
+  ocultarBadgesStockAdd();
+  ocultarSugerenciasStock();
+  input.focus();
 }
 
-function abrirSelectStock() {
-  const feria = feriaActiva(); if (!feria) return;
-  if (!STATE.catalogo.length) { cambiarVista('catalogo'); return; }
-  if (!catalogoDisponible(feria).length) return;
+function ocultarFilaAddStock() {
+  document.getElementById('stock-add-row').classList.add('hidden');
+  document.getElementById('btn-add-stock').style.display = '';
+}
 
-  actualizarSelectStock(feria);
-  const sel  = document.getElementById('stock-add-select');
-  const btn  = document.getElementById('btn-add-stock');
-  const rect = btn.getBoundingClientRect();
-  sel.style.cssText = `position:fixed;top:${rect.bottom}px;left:${rect.left}px;width:${rect.width}px;opacity:0;pointer-events:auto;z-index:9999;font-size:16px`;
-  sel.focus();
-  try { sel.showPicker(); } catch(e) { sel.click(); }
+function ocultarBadgesStockAdd() {
+  document.getElementById('stock-add-badge-new').classList.add('hidden');
+  document.getElementById('stock-add-badge-exists').classList.add('hidden');
+}
+
+function ocultarSugerenciasStock() {
+  const sug = document.getElementById('stock-add-suggestions');
+  sug.classList.add('hidden');
+  sug.innerHTML = '';
+}
+
+// Muestra sugerencias del catálogo según lo que el usuario escribe
+function actualizarSugerenciasStock(feria, query) {
+  const sug = document.getElementById('stock-add-suggestions');
+  const disponibles = catalogoDisponible(feria);
+  const q = query.trim().toLowerCase();
+
+  if (!q) { ocultarSugerenciasStock(); return; }
+
+  const matches = disponibles.filter(p => p.nombre.toLowerCase().includes(q));
+  if (!matches.length) { ocultarSugerenciasStock(); return; }
+
+  sug.innerHTML = matches.map(p => `
+    <div class="suggestion-item" data-suggest-id="${p.id}">
+      <span>${esc(p.nombre)}</span>
+      <span class="suggestion-meta">${fmtN(p.precio,2)} € · ${fmtN(p.pesoKg,3)} kg</span>
+    </div>`).join('');
+  sug.classList.remove('hidden');
+
+  sug.querySelectorAll('[data-suggest-id]').forEach(el =>
+    el.addEventListener('click', () => {
+      const cat = catById(el.dataset.suggestId);
+      if (cat) confirmarAddStock(cat);
+    }));
+}
+
+// Detecta si el nombre escrito coincide EXACTAMENTE (case-insensitive) con un título
+// ya existente en el catálogo pero aún no añadido al stock de esta feria
+function buscarCoincidenciaExacta(feria, nombre) {
+  const disponibles = catalogoDisponible(feria);
+  const q = nombre.trim().toLowerCase();
+  return disponibles.find(p => p.nombre.toLowerCase() === q) || null;
+}
+
+// Confirma la adición de un título existente del catálogo al stock
+function confirmarAddStock(cat) {
+  const feria = feriaActiva(); if (!feria) return;
+  feria.stock.push({ id:uid(), catalogoId:cat.id, nombre:cat.nombre, precio:cat.precio, pesoKg:cat.pesoKg, qty:1 });
+  guardar();
+  ocultarFilaAddStock();
+  renderStockTabla(feria);
+  renderKPIs(feria);
+  renderPaquetes(feria);
+  renderChecklist(feria);
+  renderFeriasList();
+}
+
+// Confirma la creación de un título NUEVO: se guarda en el catálogo y se añade al stock
+function confirmarAddStockNuevo(nombre) {
+  const feria = feriaActiva(); if (!feria) return;
+  const nombreLimpio = nombre.trim();
+  if (!nombreLimpio) { ocultarFilaAddStock(); return; }
+
+  // Crear entrada nueva en el catálogo (precio y peso a 0, se editan luego)
+  const cat = { id: uid(), nombre: nombreLimpio, precio: 0, pesoKg: 0 };
+  STATE.catalogo.push(cat);
+
+  feria.stock.push({ id:uid(), catalogoId:cat.id, nombre:cat.nombre, precio:cat.precio, pesoKg:cat.pesoKg, qty:1 });
+  guardar();
+  ocultarFilaAddStock();
+  renderStockTabla(feria);
+  renderKPIs(feria);
+  renderPaquetes(feria);
+  renderChecklist(feria);
+  renderFeriasList();
 }
 
 function quitarStock(sid) {
@@ -870,6 +936,71 @@ function agregarPaquete() {
   feria.paquetes.push({ id:uid(), tipo:'postal', pesoVacioKg:0, limiteKg:10, asignaciones:{}, open:true });
   guardar();
   renderPaquetes(feria);
+  renderChecklist(feria);
+  renderFeriasList();
+}
+
+// Actualiza el estado habilitado/deshabilitado del botón "Repartir equitativamente"
+function actualizarBotonAutoRepartir(feria) {
+  const btn = document.getElementById('btn-auto-repartir');
+  if (!btn) return;
+  const hayPaquetes = (feria?.paquetes||[]).length > 0;
+  btn.disabled = !hayPaquetes;
+}
+
+// ─────────────────────────────────────────────
+// REPARTIR EQUITATIVAMENTE
+// Respeta las asignaciones manuales ya existentes y solo distribuye
+// el stock que queda sin asignar, dando prioridad al paquete con más
+// margen de peso libre. Nunca crea sobrepeso: si no cabe todo, el resto
+// queda sin asignar para que el usuario cree más paquetes.
+// ─────────────────────────────────────────────
+function repartirEquitativamente() {
+  const feria = feriaActiva(); if (!feria) return;
+  const paquetes = feria.paquetes||[];
+  if (!paquetes.length) return;
+
+  (feria.stock||[]).forEach(s => {
+    let sinAsignar = sinAsignarItem(feria, s.id);
+    if (sinAsignar <= 0) return;
+
+    // Repetir mientras queden unidades sin asignar de este título
+    // y al menos un paquete tenga margen de peso para recibir una más
+    while (sinAsignar > 0) {
+      // Calcular margen de peso disponible en cada paquete
+      // margen = límite - pesoTotal actual (Infinity si no hay límite definido)
+      let mejorPaq = null, mejorMargen = -Infinity;
+
+      paquetes.forEach(p => {
+        const stats  = calcPaquete(feria, p);
+        const limite = parseFloat(p.limiteKg);
+        const sinTope = !limite || limite <= 0;
+        const margen  = sinTope ? Infinity : (limite - stats.pesoTotal);
+        // Solo es candidato si tiene margen suficiente para una unidad más
+        const cabeUnaMas = sinTope || margen >= (s.pesoKg - 0.0001);
+        if (cabeUnaMas && margen > mejorMargen) {
+          mejorMargen = margen;
+          mejorPaq    = p;
+        }
+      });
+
+      if (!mejorPaq) {
+        // Ningún paquete tiene margen para una unidad más sin sobrepasar su límite.
+        // Dejamos el resto sin asignar — el usuario verá el aviso y podrá crear más paquetes.
+        break;
+      }
+
+      if (!mejorPaq.asignaciones) mejorPaq.asignaciones = {};
+      mejorPaq.asignaciones[s.id] = (mejorPaq.asignaciones[s.id]||0) + 1;
+      sinAsignar--;
+    }
+  });
+
+  guardar();
+  renderPaquetes(feria);
+  renderKPIs(feria);
+  actualizarCeldasSinRep(feria);
+  actualizarProgresiones(feria);
   renderChecklist(feria);
   renderFeriasList();
 }
@@ -1113,24 +1244,66 @@ document.addEventListener('DOMContentLoaded', () => {
     f.objetivo = parseFloat(e.target.value)||null; guardar(); renderKPIs(f); renderChecklist(f);
   });
 
-  // Stock — select nativo en 1 clic
-  document.getElementById('btn-add-stock').addEventListener('click', abrirSelectStock);
-  document.getElementById('stock-add-select').addEventListener('change', e => {
-    const pid = e.target.value; if (!pid) return;
+  // Stock — fila inline con autocompletado al catálogo
+  document.getElementById('btn-add-stock').addEventListener('click', abrirFilaAddStock);
+
+  const stockInput = document.getElementById('stock-add-input');
+
+  stockInput.addEventListener('input', e => {
     const feria = feriaActiva(); if (!feria) return;
-    const cat = catById(pid); if (!cat) return;
-    feria.stock.push({ id:uid(), catalogoId:cat.id, nombre:cat.nombre, precio:cat.precio, pesoKg:cat.pesoKg, qty:1 });
-    guardar();
-    e.target.value = '';
-    e.target.style.cssText = 'position:absolute;opacity:0;pointer-events:none;width:0;height:0';
-    renderStockTabla(feria); renderKPIs(feria); renderPaquetes(feria); renderChecklist(feria); renderFeriasList();
+    const nombre = e.target.value;
+
+    // Actualizar sugerencias en vivo
+    actualizarSugerenciasStock(feria, nombre);
+
+    // Actualizar badges según si coincide con algo del catálogo
+    const matchExacto = buscarCoincidenciaExacta(feria, nombre);
+    const badgeNew    = document.getElementById('stock-add-badge-new');
+    const badgeExists = document.getElementById('stock-add-badge-exists');
+    if (!nombre.trim()) {
+      badgeNew.classList.add('hidden'); badgeExists.classList.add('hidden');
+    } else if (matchExacto) {
+      badgeNew.classList.add('hidden'); badgeExists.classList.remove('hidden');
+    } else {
+      badgeExists.classList.add('hidden'); badgeNew.classList.remove('hidden');
+    }
   });
-  document.getElementById('stock-add-select').addEventListener('blur', () => {
-    setTimeout(() => {
-      const sel = document.getElementById('stock-add-select');
-      sel.style.cssText = 'position:absolute;opacity:0;pointer-events:none;width:0;height:0';
-    }, 200);
+
+  stockInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const feria = feriaActiva(); if (!feria) return;
+      const nombre = stockInput.value;
+      if (!nombre.trim()) { ocultarFilaAddStock(); return; }
+      const matchExacto = buscarCoincidenciaExacta(feria, nombre);
+      if (matchExacto) confirmarAddStock(matchExacto);
+      else confirmarAddStockNuevo(nombre);
+    }
+    if (e.key === 'Escape') { e.preventDefault(); ocultarFilaAddStock(); }
   });
+
+  // Cerrar sugerencias y fila si se hace clic fuera
+  document.addEventListener('click', e => {
+    const row = document.getElementById('stock-add-row');
+    if (row.classList.contains('hidden')) return;
+    if (!row.contains(e.target) && e.target.id !== 'btn-add-stock') {
+      // Si hay texto escrito sin confirmar, lo guardamos como nuevo al perder foco
+      const val = stockInput.value.trim();
+      if (val) {
+        const feria = feriaActiva();
+        if (feria) {
+          const matchExacto = buscarCoincidenciaExacta(feria, val);
+          if (matchExacto) confirmarAddStock(matchExacto);
+          else confirmarAddStockNuevo(val);
+          return;
+        }
+      }
+      ocultarFilaAddStock();
+    }
+  });
+
+  // Repartir equitativamente
+  document.getElementById('btn-auto-repartir').addEventListener('click', repartirEquitativamente);
 
   // Paquetes
   document.getElementById('btn-add-contenedor').addEventListener('click', agregarPaquete);
