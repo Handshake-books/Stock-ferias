@@ -18,7 +18,20 @@
         <div class="app-title">Calculadora Stock Ferias</div>
       </div>
     </div>
+    <div class="app-subtitle-block" id="app-subtitle-block">
+      <p class="app-subtitle-text">
+        Calcula cuánto stock llevar a una feria, repártelo en cajas o maletas sin pasarte de peso, y genera la lista de empaquetado. Antes de empezar, piensa:
+      </p>
+      <ul class="app-subtitle-questions">
+        <li>¿Tienes claro el límite de peso de cada maleta o caja que vas a usar?</li>
+        <li>¿Sueles volver con stock de sobra que pesa igual en el viaje de vuelta?</li>
+        <li>¿Qué títulos encajan mejor en esta feria en concreto, frente a llevar siempre lo mismo?</li>
+      </ul>
+      <button class="app-subtitle-dismiss" id="btn-dismiss-subtitle">Entendido, ocultar</button>
+    </div>
   </div>
+
+  <button class="app-subtitle-reopen hidden" id="btn-reopen-subtitle">¿Cómo funciona esto?</button>
 
   <!-- ══════════════════════════════════════
        VIEW: FERIAS — 3 columnas
@@ -106,7 +119,7 @@
           <!-- FASE 1: Stock -->
           <div class="section-block">
             <div class="section-header">
-              <div><div class="section-number">1</div><div class="section-title-text">Stock de la feria</div></div>
+              <div><div class="section-number">1</div><div class="section-title-text">Stock para llevar a la feria</div></div>
             </div>
             <p class="section-desc">Define qué títulos te llevas y cuántas unidades. El precio y el peso vienen del catálogo.</p>
 
@@ -125,7 +138,7 @@
                 <span></span>
               </div>
               <div id="stock-tbody"></div>
-              <div id="stock-empty" class="hint-text hint-italic hidden">Aún no hay títulos. Añade el primero.</div>
+              <div id="stock-empty" class="hint-text hint-italic hidden">Aún no hay títulos. Al pulsar "+ añadir título" verás tu catálogo completo para elegir, o podrás crear uno nuevo al vuelo.</div>
 
               <!-- Desplegable para añadir título — "+ Nuevo título" siempre primero, luego todo el catálogo disponible -->
               <div id="stock-add-dropdown" class="stock-add-dropdown hidden">
@@ -186,7 +199,7 @@
           <!-- Checklist estado feria -->
           <div class="checklist-card hidden" id="checklist-card">
             <div class="checklist-header">
-              <div class="section-title-text" style="font-size:12px">Estado de la feria</div>
+              <div class="section-title-text" style="font-size:12px">Checklist de la feria</div>
               <button class="btn btn-dark btn-sm" id="btn-packing-list">Imprimir packing list</button>
             </div>
             <div id="checklist-rows"></div>

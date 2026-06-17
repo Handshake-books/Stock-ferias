@@ -28,6 +28,29 @@ function cargar() {
 }
 
 // ─────────────────────────────────────────────
+// SUBTÍTULO EXPLICATIVO — se puede ocultar y queda recordado
+// ─────────────────────────────────────────────
+function inicializarSubtitulo() {
+  const block  = document.getElementById('app-subtitle-block');
+  const reopen = document.getElementById('btn-reopen-subtitle');
+  const oculto = localStorage.getItem('sfv10_subtitulo_oculto') === '1';
+
+  block.classList.toggle('hidden', oculto);
+  reopen.classList.toggle('hidden', !oculto);
+
+  document.getElementById('btn-dismiss-subtitle').addEventListener('click', () => {
+    block.classList.add('hidden');
+    reopen.classList.remove('hidden');
+    localStorage.setItem('sfv10_subtitulo_oculto', '1');
+  });
+  reopen.addEventListener('click', () => {
+    block.classList.remove('hidden');
+    reopen.classList.add('hidden');
+    localStorage.setItem('sfv10_subtitulo_oculto', '0');
+  });
+}
+
+// ─────────────────────────────────────────────
 // FORMATO
 // ─────────────────────────────────────────────
 function fmtN(n, dec) {
@@ -1243,6 +1266,7 @@ function importarTodo() {
 // ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   cargar();
+  inicializarSubtitulo();
 
   // Si no hay ferias, crear una vacía para arrancar directamente
   if (!STATE.ferias.length) {
