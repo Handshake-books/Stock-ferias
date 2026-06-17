@@ -18,20 +18,24 @@
         <div class="app-title">Calculadora Stock Ferias</div>
       </div>
     </div>
-    <div class="app-subtitle-block" id="app-subtitle-block">
-      <p class="app-subtitle-text">
-        Calcula cuánto stock llevar a una feria, repártelo en cajas o maletas sin pasarte de peso, y genera la lista de empaquetado. Antes de empezar, piensa:
-      </p>
-      <ul class="app-subtitle-questions">
-        <li>¿Tienes claro el límite de peso de cada maleta o caja que vas a usar?</li>
-        <li>¿Sueles volver con stock de sobra que pesa igual en el viaje de vuelta?</li>
-        <li>¿Qué títulos encajan mejor en esta feria en concreto, frente a llevar siempre lo mismo?</li>
-      </ul>
-      <button class="app-subtitle-dismiss" id="btn-dismiss-subtitle">Entendido, ocultar</button>
+    <p class="app-subtitle-text">
+      ¿Has vuelto alguna vez de una feria con la maleta reventando y media caja de libros que no se vendieron? Esta calculadora te ayuda a decidir cuánto llevar, repartirlo sin pasarte de peso, y tener siempre a mano qué va en cada bulto.
+    </p>
+
+    <button class="app-howto-toggle" id="btn-howto-toggle">
+      <span>Cómo usar esta herramienta</span>
+      <span class="app-howto-arrow" id="app-howto-arrow">▶</span>
+    </button>
+    <div class="app-howto-panel hidden" id="app-howto-panel">
+      <ol class="app-howto-steps">
+        <li><strong>Crea una feria</strong> y dale un nombre claro (ciudad, evento, año). Si quieres, añade tu objetivo de ventas para que la calculadora te avise si te excedes de stock.</li>
+        <li><strong>Añade los títulos que te llevas</strong> y cuántas unidades de cada uno. Si ya los tenías en el catálogo, los eliges de la lista; si no, los creas al vuelo con su precio y peso.</li>
+        <li><strong>Crea tus paquetes</strong> (cajas o maletas) e indica el peso vacío y el límite de cada uno.</li>
+        <li><strong>Reparte el stock entre los paquetes</strong>, a mano o con "Repartir equitativamente" para que lo haga por ti sin pasarte de peso.</li>
+        <li><strong>Revisa la checklist</strong>: cuando todo esté en verde, imprime la packing list y sal de casa sabiendo exactamente qué lleva cada bulto.</li>
+      </ol>
     </div>
   </div>
-
-  <button class="app-subtitle-reopen hidden" id="btn-reopen-subtitle">¿Cómo funciona esto?</button>
 
   <!-- ══════════════════════════════════════
        VIEW: FERIAS — 3 columnas

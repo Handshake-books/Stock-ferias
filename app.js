@@ -28,25 +28,15 @@ function cargar() {
 }
 
 // ─────────────────────────────────────────────
-// SUBTÍTULO EXPLICATIVO — se puede ocultar y queda recordado
+// "CÓMO USAR ESTA HERRAMIENTA" — desplegable con los pasos a seguir
 // ─────────────────────────────────────────────
-function inicializarSubtitulo() {
-  const block  = document.getElementById('app-subtitle-block');
-  const reopen = document.getElementById('btn-reopen-subtitle');
-  const oculto = localStorage.getItem('sfv10_subtitulo_oculto') === '1';
+function inicializarHowto() {
+  const panel = document.getElementById('app-howto-panel');
+  const arrow = document.getElementById('app-howto-arrow');
 
-  block.classList.toggle('hidden', oculto);
-  reopen.classList.toggle('hidden', !oculto);
-
-  document.getElementById('btn-dismiss-subtitle').addEventListener('click', () => {
-    block.classList.add('hidden');
-    reopen.classList.remove('hidden');
-    localStorage.setItem('sfv10_subtitulo_oculto', '1');
-  });
-  reopen.addEventListener('click', () => {
-    block.classList.remove('hidden');
-    reopen.classList.add('hidden');
-    localStorage.setItem('sfv10_subtitulo_oculto', '0');
+  document.getElementById('btn-howto-toggle').addEventListener('click', () => {
+    const abierto = panel.classList.toggle('hidden') === false;
+    arrow.classList.toggle('open', abierto);
   });
 }
 
@@ -1266,7 +1256,7 @@ function importarTodo() {
 // ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   cargar();
-  inicializarSubtitulo();
+  inicializarHowto();
 
   // Si no hay ferias, crear una vacía para arrancar directamente
   if (!STATE.ferias.length) {
