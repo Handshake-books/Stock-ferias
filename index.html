@@ -127,14 +127,23 @@
               <div id="stock-tbody"></div>
               <div id="stock-empty" class="hint-text hint-italic hidden">Aún no hay títulos. Añade el primero.</div>
 
-              <!-- Fila inline para añadir título — nuevo o existente -->
-              <div id="stock-add-row" class="stock-add-row hidden">
-                <div class="cell-name stock-add-input-wrap">
-                  <input type="text" id="stock-add-input" placeholder="Nombre del título…" autocomplete="off" />
-                  <span class="cat-badge new hidden" id="stock-add-badge-new">+ Nuevo</span>
-                  <span class="cat-badge exists hidden" id="stock-add-badge-exists">✓ Catálogo</span>
+              <!-- Desplegable para añadir título — "+ Nuevo título" siempre primero, luego todo el catálogo disponible -->
+              <div id="stock-add-dropdown" class="stock-add-dropdown hidden">
+                <div id="stock-add-list" class="stock-add-list"></div>
+
+                <!-- Fila de creación de título nuevo — aparece al elegir "+ Nuevo título" -->
+                <div id="stock-add-new-row" class="stock-add-new-row hidden">
+                  <input type="text" id="stock-add-input" placeholder="Nombre del título nuevo…" autocomplete="off" />
+                  <div class="stock-add-extra-field">
+                    <input type="number" id="stock-add-precio" min="0" step="0.01" placeholder="0,00" />
+                    <span class="stock-add-extra-unit">€</span>
+                  </div>
+                  <div class="stock-add-extra-field">
+                    <input type="number" id="stock-add-peso" min="0" step="0.001" placeholder="0,000" />
+                    <span class="stock-add-extra-unit">kg</span>
+                  </div>
+                  <button class="stock-add-confirm-btn" id="btn-stock-add-confirm">Añadir</button>
                 </div>
-                <div id="stock-add-suggestions" class="stock-add-suggestions hidden"></div>
               </div>
             </div>
 
@@ -156,7 +165,10 @@
           <div class="section-block">
             <div class="section-header">
               <div><div class="section-number">2</div><div class="section-title-text">Reparto por paquetes</div></div>
-              <button class="btn btn-green btn-sm" id="btn-auto-repartir" disabled>⚡ Repartir equitativamente</button>
+              <div class="section-header-actions">
+                <button class="btn btn-outline btn-sm" id="btn-borrar-reparto-paquetes" disabled>Borrar reparto</button>
+                <button class="btn btn-green btn-sm" id="btn-auto-repartir" disabled>⚡ Repartir equitativamente</button>
+              </div>
             </div>
             <p class="section-desc">Distribuye las unidades entre tus paquetes. Intenta repartir todos los títulos en cada paquete — si se pierde uno por el camino, seguirás teniendo ejemplares de todo. Cada paquete puede ser de un tipo distinto.</p>
 

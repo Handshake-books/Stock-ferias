@@ -195,47 +195,69 @@ a { color: inherit; text-decoration: none; }
   gap: 5px; align-items: center; margin-bottom: 3px;
 }
 
-/* Fila inline para añadir título — input editable con autocompletado al catálogo */
-.stock-add-row {
+/* Desplegable para añadir título — lista completa del catálogo con "+ Nuevo título" siempre primero */
+.stock-add-dropdown {
   position: relative;
   margin-top: 4px;
-}
-.stock-add-input-wrap {
-  display: flex; align-items: center; gap: 6px;
-  border-color: var(--blue);
-}
-.stock-add-input-wrap input {
-  border: none; background: transparent; outline: none;
-  font-family: Inter, system-ui, sans-serif; font-size: 12px; font-weight: 600;
-  color: var(--text); width: 100%; padding: 7px 0;
-}
-.stock-add-input-wrap input::placeholder { color: var(--muted); font-weight: 400; font-style: italic; }
-
-/* Badge "nuevo" / "en catálogo" junto al input */
-.cat-badge {
-  font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .3px;
-  padding: 2px 6px; border-radius: 4px; white-space: nowrap; flex-shrink: 0;
-}
-.cat-badge.new    { background: #fef3c7; color: #92400e; }
-.cat-badge.exists { background: #d1fae5; color: #065f46; }
-
-/* Lista de sugerencias del catálogo al escribir */
-.stock-add-suggestions {
-  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
   background: #fff; border: 1px solid var(--border); border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0,0,0,.12); z-index: 50;
-  max-height: 220px; overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0,0,0,.10);
+  overflow: hidden;
 }
-.suggestion-item {
-  padding: 8px 12px; cursor: pointer; font-size: 12px; font-weight: 600;
-  display: flex; justify-content: space-between; align-items: center; gap: 10px;
-  transition: background .1s; border-bottom: 1px solid var(--bg);
+.stock-add-list {
+  max-height: 280px; overflow-y: auto;
 }
-.suggestion-item:last-child { border-bottom: none; }
-.suggestion-item:hover { background: var(--bg); }
-.suggestion-meta { font-size: 10px; color: var(--muted); font-weight: 700; white-space: nowrap; }
+.stock-add-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 12px; cursor: pointer; font-size: 12px; font-weight: 600;
+  border-bottom: 1px solid var(--bg); transition: background .1s;
+}
+.stock-add-item:last-child { border-bottom: none; }
+.stock-add-item:hover { background: var(--bg); }
+.stock-add-item-meta { font-size: 10px; color: var(--muted); font-weight: 700; white-space: nowrap; flex-shrink: 0; }
 
-/* (legacy comment removed — select reemplazado por input inline) */
+/* Fila especial "+ Nuevo título" — siempre primera, visualmente distinta */
+.stock-add-item.is-new {
+  color: var(--blue); font-weight: 800; background: #f0f7ff;
+}
+.stock-add-item.is-new:hover { background: #e0efff; }
+
+.stock-add-empty {
+  padding: 14px 12px; font-size: 11px; color: var(--muted); text-align: center; font-style: italic;
+}
+
+/* Fila de creación de título nuevo — nombre + precio + peso + confirmar, todo editable inline */
+.stock-add-new-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 12px; border-top: 1px solid var(--border); background: var(--bg);
+}
+.stock-add-new-row input#stock-add-input {
+  border: 1px solid var(--blue); background: #fff; border-radius: 6px;
+  font-family: Inter, system-ui, sans-serif; font-size: 12px; font-weight: 600;
+  color: var(--text); padding: 7px 8px; outline: none;
+  flex: 1 1 auto; min-width: 60px;
+}
+.stock-add-extra-field {
+  display: flex; align-items: center; gap: 3px; flex-shrink: 0;
+  background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 0 6px;
+}
+.stock-add-extra-field input {
+  border: none; background: transparent; outline: none; text-align: right;
+  font-family: Inter, system-ui, sans-serif; font-size: 12px; font-weight: 700;
+  color: var(--text); width: 56px; padding: 7px 0; -moz-appearance: textfield;
+}
+.stock-add-extra-field input::-webkit-outer-spin-button,
+.stock-add-extra-field input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.stock-add-extra-unit { font-size: 8px; font-weight: 800; color: var(--muted); text-transform: uppercase; white-space: nowrap; }
+
+.stock-add-confirm-btn {
+  background: var(--text); color: #fff; border: none; border-radius: 6px;
+  font-family: Inter, system-ui, sans-serif; font-size: 10px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .3px; cursor: pointer;
+  padding: 8px 12px; flex-shrink: 0; transition: opacity .15s;
+}
+.stock-add-confirm-btn:hover { opacity: .85; }
+
+.section-header-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 
 /* Celdas */
 .cell-name {

@@ -795,71 +795,71 @@ function borrarFeria() {
 }
 
 // ─────────────────────────────────────────────
-// ACCIONES: Stock — fila inline con autocompletado al catálogo
+// ACCIONES: Stock — desplegable con "+ Nuevo título" + lista completa del catálogo
 // ─────────────────────────────────────────────
 
-// Muestra la fila inline de "añadir título" con el input listo para escribir
+// Abre el desplegable mostrando "+ Nuevo título" primero y luego todos los
+// títulos del catálogo que aún no están en el stock de esta feria
 function abrirFilaAddStock() {
   const feria = feriaActiva(); if (!feria) return;
-  const row   = document.getElementById('stock-add-row');
-  const addBtn= document.getElementById('btn-add-stock');
-  const input = document.getElementById('stock-add-input');
+  const dropdown = document.getElementById('stock-add-dropdown');
+  const addBtn   = document.getElementById('btn-add-stock');
 
-  row.classList.remove('hidden');
+  dropdown.classList.remove('hidden');
   addBtn.style.display = 'none';
-  input.value = '';
-  ocultarBadgesStockAdd();
-  ocultarSugerenciasStock();
-  input.focus();
+  ocultarFormularioNuevoTitulo();
+  renderListaAddStock(feria);
 }
 
 function ocultarFilaAddStock() {
-  document.getElementById('stock-add-row').classList.add('hidden');
+  document.getElementById('stock-add-dropdown').classList.add('hidden');
   document.getElementById('btn-add-stock').style.display = '';
+  ocultarFormularioNuevoTitulo();
 }
 
-function ocultarBadgesStockAdd() {
-  document.getElementById('stock-add-badge-new').classList.add('hidden');
-  document.getElementById('stock-add-badge-exists').classList.add('hidden');
-}
-
-function ocultarSugerenciasStock() {
-  const sug = document.getElementById('stock-add-suggestions');
-  sug.classList.add('hidden');
-  sug.innerHTML = '';
-}
-
-// Muestra sugerencias del catálogo según lo que el usuario escribe
-function actualizarSugerenciasStock(feria, query) {
-  const sug = document.getElementById('stock-add-suggestions');
+// Pinta la lista del desplegable: "+ Nuevo título" siempre primero,
+// seguido de todos los títulos del catálogo aún no añadidos a esta feria
+function renderListaAddStock(feria) {
+  const list = document.getElementById('stock-add-list');
   const disponibles = catalogoDisponible(feria);
-  const q = query.trim().toLowerCase();
 
-  if (!q) { ocultarSugerenciasStock(); return; }
+  let html = `<div class="stock-add-item is-new" id="stock-add-item-new">
+    <span>+ Nuevo título</span>
+  </div>`;
 
-  const matches = disponibles.filter(p => p.nombre.toLowerCase().includes(q));
-  if (!matches.length) { ocultarSugerenciasStock(); return; }
+  if (disponibles.length) {
+    html += disponibles.map(p => `
+      <div class="stock-add-item" data-add-cat-id="${p.id}">
+        <span>${esc(p.nombre)}</span>
+        <span class="stock-add-item-meta">${fmtN(p.precio,2)} € · ${fmtN(p.pesoKg,3)} kg</span>
+      </div>`).join('');
+  } else {
+    html += `<div class="stock-add-empty">Todo tu catálogo ya está en el stock de esta feria.</div>`;
+  }
 
-  sug.innerHTML = matches.map(p => `
-    <div class="suggestion-item" data-suggest-id="${p.id}">
-      <span>${esc(p.nombre)}</span>
-      <span class="suggestion-meta">${fmtN(p.precio,2)} € · ${fmtN(p.pesoKg,3)} kg</span>
-    </div>`).join('');
-  sug.classList.remove('hidden');
+  list.innerHTML = html;
 
-  sug.querySelectorAll('[data-suggest-id]').forEach(el =>
+  document.getElementById('stock-add-item-new').addEventListener('click', mostrarFormularioNuevoTitulo);
+  list.querySelectorAll('[data-add-cat-id]').forEach(el =>
     el.addEventListener('click', () => {
-      const cat = catById(el.dataset.suggestId);
+      const cat = catById(el.dataset.addCatId);
       if (cat) confirmarAddStock(cat);
     }));
 }
 
-// Detecta si el nombre escrito coincide EXACTAMENTE (case-insensitive) con un título
-// ya existente en el catálogo pero aún no añadido al stock de esta feria
-function buscarCoincidenciaExacta(feria, nombre) {
-  const disponibles = catalogoDisponible(feria);
-  const q = nombre.trim().toLowerCase();
-  return disponibles.find(p => p.nombre.toLowerCase() === q) || null;
+// Muestra la fila de creación de título nuevo (nombre + precio + peso editables)
+function mostrarFormularioNuevoTitulo() {
+  const row   = document.getElementById('stock-add-new-row');
+  const input = document.getElementById('stock-add-input');
+  row.classList.remove('hidden');
+  input.value = '';
+  document.getElementById('stock-add-precio').value = '';
+  document.getElementById('stock-add-peso').value   = '';
+  input.focus();
+}
+
+function ocultarFormularioNuevoTitulo() {
+  document.getElementById('stock-add-new-row').classList.add('hidden');
 }
 
 // Confirma la adición de un título existente del catálogo al stock
@@ -876,13 +876,19 @@ function confirmarAddStock(cat) {
 }
 
 // Confirma la creación de un título NUEVO: se guarda en el catálogo y se añade al stock
+// Lee precio y peso de los campos inline para que no quede a 0 sin poder editarlos
 function confirmarAddStockNuevo(nombre) {
   const feria = feriaActiva(); if (!feria) return;
   const nombreLimpio = nombre.trim();
-  if (!nombreLimpio) { ocultarFilaAddStock(); return; }
+  if (!nombreLimpio) return;
 
-  // Crear entrada nueva en el catálogo (precio y peso a 0, se editan luego)
-  const cat = { id: uid(), nombre: nombreLimpio, precio: 0, pesoKg: 0 };
+  const precioInp = document.getElementById('stock-add-precio');
+  const pesoInp    = document.getElementById('stock-add-peso');
+  const precio = Math.max(0, parseFloat(precioInp?.value) || 0);
+  const pesoKg = Math.max(0, parseFloat(pesoInp?.value) || 0);
+
+  // Crear entrada nueva en el catálogo con el precio y peso introducidos aquí mismo
+  const cat = { id: uid(), nombre: nombreLimpio, precio, pesoKg };
   STATE.catalogo.push(cat);
 
   feria.stock.push({ id:uid(), catalogoId:cat.id, nombre:cat.nombre, precio:cat.precio, pesoKg:cat.pesoKg, qty:1 });
@@ -940,12 +946,37 @@ function agregarPaquete() {
   renderFeriasList();
 }
 
-// Actualiza el estado habilitado/deshabilitado del botón "Repartir equitativamente"
+// Actualiza el estado habilitado/deshabilitado de "Repartir equitativamente" y "Borrar reparto"
 function actualizarBotonAutoRepartir(feria) {
-  const btn = document.getElementById('btn-auto-repartir');
+  const btn       = document.getElementById('btn-auto-repartir');
+  const btnBorrar = document.getElementById('btn-borrar-reparto-paquetes');
   if (!btn) return;
   const hayPaquetes = (feria?.paquetes||[]).length > 0;
   btn.disabled = !hayPaquetes;
+  if (btnBorrar) {
+    const hayAsignaciones = (feria?.paquetes||[]).some(p =>
+      Object.values(p.asignaciones||{}).some(q => q > 0));
+    btnBorrar.disabled = !hayAsignaciones;
+  }
+}
+
+// Vacía todas las asignaciones de todos los paquetes (sin eliminar los paquetes en sí),
+// dejando todo el stock sin repartir de nuevo
+function borrarRepartoPaquetes() {
+  const feria = feriaActiva(); if (!feria) return;
+  const hayAsignaciones = (feria.paquetes||[]).some(p =>
+    Object.values(p.asignaciones||{}).some(q => q > 0));
+  if (!hayAsignaciones) return;
+  if (!confirm('¿Borrar todo el reparto? Los paquetes se mantienen, pero todas las unidades quedarán sin asignar.')) return;
+
+  (feria.paquetes||[]).forEach(p => { p.asignaciones = {}; });
+  guardar();
+  renderPaquetes(feria);
+  renderKPIs(feria);
+  actualizarCeldasSinRep(feria);
+  actualizarProgresiones(feria);
+  renderChecklist(feria);
+  renderFeriasList();
 }
 
 // ─────────────────────────────────────────────
@@ -1244,66 +1275,44 @@ document.addEventListener('DOMContentLoaded', () => {
     f.objetivo = parseFloat(e.target.value)||null; guardar(); renderKPIs(f); renderChecklist(f);
   });
 
-  // Stock — fila inline con autocompletado al catálogo
+  // Stock — desplegable con "+ Nuevo título" + lista completa del catálogo
   document.getElementById('btn-add-stock').addEventListener('click', abrirFilaAddStock);
 
   const stockInput = document.getElementById('stock-add-input');
 
-  stockInput.addEventListener('input', e => {
-    const feria = feriaActiva(); if (!feria) return;
-    const nombre = e.target.value;
-
-    // Actualizar sugerencias en vivo
-    actualizarSugerenciasStock(feria, nombre);
-
-    // Actualizar badges según si coincide con algo del catálogo
-    const matchExacto = buscarCoincidenciaExacta(feria, nombre);
-    const badgeNew    = document.getElementById('stock-add-badge-new');
-    const badgeExists = document.getElementById('stock-add-badge-exists');
-    if (!nombre.trim()) {
-      badgeNew.classList.add('hidden'); badgeExists.classList.add('hidden');
-    } else if (matchExacto) {
-      badgeNew.classList.add('hidden'); badgeExists.classList.remove('hidden');
-    } else {
-      badgeExists.classList.add('hidden'); badgeNew.classList.remove('hidden');
-    }
-  });
+  function confirmarNuevoTitulo() {
+    const nombre = stockInput.value;
+    if (!nombre.trim()) return;
+    confirmarAddStockNuevo(nombre);
+  }
 
   stockInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const feria = feriaActiva(); if (!feria) return;
-      const nombre = stockInput.value;
-      if (!nombre.trim()) { ocultarFilaAddStock(); return; }
-      const matchExacto = buscarCoincidenciaExacta(feria, nombre);
-      if (matchExacto) confirmarAddStock(matchExacto);
-      else confirmarAddStockNuevo(nombre);
-    }
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('stock-add-precio').focus(); }
     if (e.key === 'Escape') { e.preventDefault(); ocultarFilaAddStock(); }
   });
 
-  // Cerrar sugerencias y fila si se hace clic fuera
+  // Enter en precio/peso confirma directamente
+  ['stock-add-precio', 'stock-add-peso'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); confirmarNuevoTitulo(); }
+      if (e.key === 'Escape') { e.preventDefault(); ocultarFilaAddStock(); }
+    });
+  });
+
+  document.getElementById('btn-stock-add-confirm').addEventListener('click', confirmarNuevoTitulo);
+
+  // Clic fuera del desplegable: lo cierra sin guardar nada a medias
   document.addEventListener('click', e => {
-    const row = document.getElementById('stock-add-row');
-    if (row.classList.contains('hidden')) return;
-    if (!row.contains(e.target) && e.target.id !== 'btn-add-stock') {
-      // Si hay texto escrito sin confirmar, lo guardamos como nuevo al perder foco
-      const val = stockInput.value.trim();
-      if (val) {
-        const feria = feriaActiva();
-        if (feria) {
-          const matchExacto = buscarCoincidenciaExacta(feria, val);
-          if (matchExacto) confirmarAddStock(matchExacto);
-          else confirmarAddStockNuevo(val);
-          return;
-        }
-      }
+    const dropdown = document.getElementById('stock-add-dropdown');
+    if (dropdown.classList.contains('hidden')) return;
+    if (!dropdown.contains(e.target) && e.target.id !== 'btn-add-stock') {
       ocultarFilaAddStock();
     }
   });
 
-  // Repartir equitativamente
+  // Repartir equitativamente / Borrar reparto
   document.getElementById('btn-auto-repartir').addEventListener('click', repartirEquitativamente);
+  document.getElementById('btn-borrar-reparto-paquetes').addEventListener('click', borrarRepartoPaquetes);
 
   // Paquetes
   document.getElementById('btn-add-contenedor').addEventListener('click', agregarPaquete);
