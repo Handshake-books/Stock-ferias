@@ -53,15 +53,17 @@
         </div>
 
         <!-- Lista ferias -->
-        <div class="column-title">Mis ferias</div>
-        <div id="ferias-empty" class="hint-text hidden" style="margin-bottom:8px">Aún no hay ferias. Crea la primera.</div>
-        <div id="ferias-list"></div>
-        <button class="add-btn" id="btn-nueva-feria">+ nueva feria</button>
+        <div class="col1-section">
+          <div class="column-title">Mis ferias</div>
+          <div id="ferias-empty" class="hint-text hidden" style="margin-bottom:8px">Aún no hay ferias. Crea la primera.</div>
+          <div id="ferias-list"></div>
+          <button class="add-btn" id="btn-nueva-feria">+ nueva feria</button>
+        </div>
 
         <!-- Base de datos -->
         <div class="col1-section">
           <div class="column-title">Base de datos</div>
-          <p class="hint-text" style="margin-bottom:8px">Guarda y recupera todas tus ferias y el catálogo en un solo archivo JSON.</p>
+          <p class="hint-text" style="margin-bottom:8px">Tus ferias y catálogo se guardan automáticamente en el navegador (no tenemos acceso a ellos) y seguirán ahí la próxima vez que abras esta página. Descarga una copia de seguridad si quieres tenerla a salvo por si borras el caché o cambias de ordenador.</p>
           <button class="data-action-btn" id="btn-export-todo">↓ Descargar</button>
           <button class="data-action-btn" id="btn-import-todo">↑ Importar</button>
         </div>
@@ -96,7 +98,7 @@
                 <span class="meta-chip-label">€</span>
               </div>
             </div>
-            <div class="hint-text" style="margin-top:6px">Si el valor del stock supera el doble de tu objetivo, el coste de enviarlo de vuelta puede comerse el margen.</div>
+            <div class="hint-text" style="margin-top:6px">Si llevas mucho más stock del que esperas vender, lo que no se venda tendrás que devolverlo a casa, y eso también tiene un coste.</div>
           </div>
 
           <!-- KPIs -->
@@ -183,7 +185,7 @@
             <div class="section-header">
               <div><div class="section-number">2</div><div class="section-title-text">Reparto por paquetes</div></div>
               <div class="section-header-actions">
-                <button class="btn btn-outline btn-sm" id="btn-borrar-reparto-paquetes" disabled>Borrar reparto</button>
+                <button class="btn btn-outline btn-sm" id="btn-borrar-reparto-paquetes" disabled>Limpiar reparto</button>
                 <button class="btn btn-green btn-sm" id="btn-auto-repartir" disabled>⚡ Repartir equitativamente</button>
               </div>
             </div>
@@ -239,7 +241,7 @@
         </div>
         <div class="col1-section">
           <div class="column-title">Base de datos</div>
-          <p class="hint-text" style="margin-bottom:8px">Guarda ferias y catálogo juntos en un solo archivo.</p>
+          <p class="hint-text" style="margin-bottom:8px">Tus ferias y catálogo se guardan automáticamente en el navegador (no tenemos acceso a ellos) y seguirán ahí la próxima vez que abras esta página. Descarga una copia de seguridad si quieres tenerla a salvo por si borras el caché o cambias de ordenador.</p>
           <button class="data-action-btn" id="btn-export-todo-cat">↓ Descargar</button>
           <button class="data-action-btn" id="btn-import-todo-cat">↑ Importar</button>
         </div>

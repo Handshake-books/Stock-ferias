@@ -5,10 +5,10 @@
 const STATE = { catalogo: [], ferias: [], feriaId: null };
 
 const TIPOS = {
-  postal: { label: 'Caja postal',     nombreBase: 'Caja',   limite: 10, headClass: 'postal',
-    hint: 'Por debajo de 10 kg accedes a tarifas de paquete estándar. A partir de ahí el precio sube de forma significativa.' },
-  avion:  { label: 'Maleta de avión', nombreBase: 'Maleta', limite: 23, headClass: 'avion',
-    hint: 'El límite habitual de equipaje facturado es 23 kg. Recuerda incluir el peso de la maleta vacía.' },
+  postal: { label: 'Caja postal', nombreBase: 'Caja', limite: 10, headClass: 'postal', palabra: 'caja', pesoVacioDefault: 0.3,
+    hint: 'Como referencia, muchos transportistas aplican tarifas más asequibles por debajo de 10 kg; a partir de ahí el precio puede subir bastante. Comprueba las tarifas de tu transportista habitual.' },
+  avion:  { label: 'Maleta', nombreBase: 'Maleta', limite: 23, headClass: 'avion', palabra: 'maleta', pesoVacioDefault: 0,
+    hint: 'El límite habitual de equipaje facturado en avión es 23 kg, aunque depende de la compañía y la tarifa. Recuerda incluir el peso de la maleta vacía.' },
 };
 
 // ─────────────────────────────────────────────
@@ -292,7 +292,7 @@ function renderFeriasList() {
     div.className = 'feria-item' + (f.id === STATE.feriaId ? ' active' : '');
     div.innerHTML = `
       <div class="feria-item-name">${esc(f.nombre)||'Sin nombre'}</div>
-      <div class="feria-item-meta">${fmtE(calc.valor)}</div>
+      <div class="feria-item-meta">${fmtE(calc.valor)} · ${fmtKg(calc.pesoKg)} · ${fmtUds(calc.uds)}</div>
       <div class="feria-item-status">
         <div class="status-dot ${hasSt?'done':''}"></div>
         <div class="status-dot ${hasPaq?'done':''}"></div>
@@ -507,12 +507,12 @@ function buildPaquete(feria, paq) {
         <div class="tipo-row">
           <span class="tipo-label-txt">Tipo</span>
           <button class="tipo-btn ${paq.tipo==='postal'?'sel-postal':''}" data-tipo="postal" data-paqid="${paq.id}">📦 Caja postal</button>
-          <button class="tipo-btn ${paq.tipo==='avion'?'sel-avion':''}"  data-tipo="avion"  data-paqid="${paq.id}">✈ Maleta de avión</button>
+          <button class="tipo-btn ${paq.tipo==='avion'?'sel-avion':''}"  data-tipo="avion"  data-paqid="${paq.id}">🧳 Maleta</button>
         </div>
         <div class="tipo-hint">${tipo.hint}</div>
         <div class="co-peso-inline">
           <div class="meta-chip">
-            <span class="meta-chip-label">Peso vacío</span>
+            <span class="meta-chip-label">Peso ${tipo.palabra} vacía</span>
             <input type="number" min="0" step="0.1" value="${paq.pesoVacioKg||0}" data-field-paq="pesoVacioKg" data-paqid="${paq.id}" />
             <span class="meta-chip-label">kg</span>
           </div>
@@ -569,8 +569,9 @@ function buildPaquete(feria, paq) {
       const f = feriaActiva();
       const p = f?.paquetes.find(x => x.id === e.target.dataset.paqid);
       if (!p) return;
-      p.tipo     = e.target.dataset.tipo;
-      p.limiteKg = TIPOS[p.tipo].limite;
+      p.tipo        = e.target.dataset.tipo;
+      p.limiteKg    = TIPOS[p.tipo].limite;
+      p.pesoVacioKg = TIPOS[p.tipo].pesoVacioDefault;
       guardar();
       // Re-render solo este paquete (tipo cambia mucho del layout)
       const newBlock = buildPaquete(f, p);
@@ -952,14 +953,14 @@ function actualizarCampoStock(sid, field, val) {
 // ─────────────────────────────────────────────
 function agregarPaquete() {
   const feria = feriaActiva(); if (!feria) return;
-  feria.paquetes.push({ id:uid(), tipo:'postal', pesoVacioKg:0, limiteKg:10, asignaciones:{}, open:true });
+  feria.paquetes.push({ id:uid(), tipo:'postal', pesoVacioKg:TIPOS.postal.pesoVacioDefault, limiteKg:10, asignaciones:{}, open:true });
   guardar();
   renderPaquetes(feria);
   renderChecklist(feria);
   renderFeriasList();
 }
 
-// Actualiza el estado habilitado/deshabilitado de "Repartir equitativamente" y "Borrar reparto"
+// Actualiza el estado habilitado/deshabilitado de "Repartir equitativamente" y "Limpiar reparto"
 function actualizarBotonAutoRepartir(feria) {
   const btn       = document.getElementById('btn-auto-repartir');
   const btnBorrar = document.getElementById('btn-borrar-reparto-paquetes');
@@ -980,7 +981,7 @@ function borrarRepartoPaquetes() {
   const hayAsignaciones = (feria.paquetes||[]).some(p =>
     Object.values(p.asignaciones||{}).some(q => q > 0));
   if (!hayAsignaciones) return;
-  if (!confirm('¿Borrar todo el reparto? Los paquetes se mantienen, pero todas las unidades quedarán sin asignar.')) return;
+  if (!confirm('¿Limpiar todo el reparto? Los paquetes se mantienen, pero todas las unidades quedarán sin asignar.')) return;
 
   (feria.paquetes||[]).forEach(p => { p.asignaciones = {}; });
   guardar();
@@ -1324,7 +1325,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Repartir equitativamente / Borrar reparto
+  // Repartir equitativamente / Limpiar reparto
   document.getElementById('btn-auto-repartir').addEventListener('click', repartirEquitativamente);
   document.getElementById('btn-borrar-reparto-paquetes').addEventListener('click', borrarRepartoPaquetes);
 
